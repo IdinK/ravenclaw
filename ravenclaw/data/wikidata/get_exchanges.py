@@ -1,5 +1,5 @@
 from ..get_sparql_dataframe import get_sparql_dataframe
-from ...split_rows import split_rows
+from ...wrangling.split_rows import split_rows
 
 # usage:
 # from polarbear.data import wikidata as pbw

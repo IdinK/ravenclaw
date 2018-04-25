@@ -1,4 +1,4 @@
-from lonelypy import remove_non_alphanumeric
+from slytherin import remove_non_alphanumeric
 
 def remove_non_alphanumeric_lower_and_join(x, replace_with = '_', join_by = '__', ignore_errors = False):
 

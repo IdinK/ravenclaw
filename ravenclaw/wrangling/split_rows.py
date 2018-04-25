@@ -1,5 +1,5 @@
 from pandas import concat, Series
-from lonelypy import split_and_strip
+from slytherin import split_and_strip
 
 # splits one column of a dataframe into multiple rows
 # for example: the following dataframe

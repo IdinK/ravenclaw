@@ -1,4 +1,4 @@
-from lonelypy.time import add_time as lp_add_time
+from slytherin.time import add_time as lp_add_time
 from pandas.core.series import Series
 
 def add_time(t, amount, unit ='day'):

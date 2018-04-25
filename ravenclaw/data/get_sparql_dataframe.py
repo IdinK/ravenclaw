@@ -3,7 +3,7 @@ import pandas as pd
 import json
 from SPARQLWrapper import SPARQLWrapper, JSON
 
-def get_sparql_dataframe(service, query):
+def get_sparql_dataframe(query, service = "https://query.wikidata.org/sparql"):
     """
     Helper function to convert SPARQL results into a Pandas data frame.
     """

@@ -1,4 +1,4 @@
-from lonelypy.time import YearMonth
+from slytherin.time import YearMonth
 
 def as_yearmonth(x, sep='-', month_as='num'):
 	try:

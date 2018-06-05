@@ -1,11 +1,9 @@
 from copy import deepcopy
-from pandas import concat, DataFrame
+from pandas import concat
 from sklearn.model_selection import KFold
-from slytherin import Progress
+from slytherin.progress import ProgressBar
 from slytherin.numbers import beautify_num
 from numpy import mean as get_mean
-
-from .regressor import  Regressor
 
 class Validator:
 	def __init__(self, regressor, folds = KFold(n_splits=2)):
@@ -73,7 +71,7 @@ class Validator:
 			print('regressor:', self._untrained_regressor.name)
 
 
-		progress = Progress(total=self._folds.get_n_splits())
+		progress = ProgressBar(total=self._folds.get_n_splits())
 		split_index = 0
 		for train_index, test_index in self._folds.split(X=X_available, y=y_available, groups=groups):
 			X_train, X_test = X_available.iloc[train_index], X_available.iloc[test_index]
@@ -133,18 +131,20 @@ class Validator:
 		return summary[['name', 'split', 'num_features', 'training_size', 'test_size', 'training_time', 'test_time', 'mape', 'rmse', 'nrmse']]
 
 	def get_mape(self):
-		return [x.get_mape() for x in self._trained_regressors]
+		return [x.mape for x in self._trained_regressors]
 
 	def get_rmse(self):
-		return [x.get_rmse() for x in self._trained_regressors]
+		return [x.rmse for x in self._trained_regressors]
 
 	def get_nrmse(self):
-		return [x.get_nrmse() for x in self._trained_regressors]
+		return [x.nrmse for x in self._trained_regressors]
 
+	def get_nrmse_range(self):
+		return [x.nrmse_range for x in self._trained_regressors]
 
 
 	def test_new(self, data, y_true=None, include_cols=None, echo=True):
-		progress = Progress(total=len(self.get_trained_regressors()))
+		progress = ProgressBar(total=len(self.get_trained_regressors()))
 		test_data = data.copy()
 		results = []
 		for index, regressor in enumerate(self.get_trained_regressors()):
@@ -189,7 +189,7 @@ class Validator:
 
 	@staticmethod
 	def predict_by_validators(validators, data, echo=True):
-		progress = Progress(total=len(validators))
+		progress = ProgressBar(total=len(validators))
 		results = []
 		for index, validator in enumerate(validators):
 			result = validator.predict(data=data, return_data=True, echo=False)

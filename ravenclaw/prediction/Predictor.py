@@ -1,49 +1,49 @@
-
-from sklearn.linear_model import LinearRegression
-from pandas import concat, DataFrame
 from copy import deepcopy
-
-
-# Slytherin:
+from pandas import concat, DataFrame
 from slytherin.collections import has_duplicates, get_duplicates
-from slytherin.numbers import beautify_num
 from slytherin.time import Timer
-
-# Ravenclaw:
-from ..interpretation import get_coefficients as get_coefs
-from ..interpretation import get_feature_importances as get_importances
-from ..interpretation import RegressionPerformance
-from ..preprocessing import PolynomialTransformer
-from ..preprocessing import Normalizer
-
-from datetime import datetime
+from ..preprocessing.polynomialtransformer import PolynomialTransformer
+from ..preprocessing.normalizer import Normalizer
 
 
-class Regressor:
+
+class Predictor:
 	def __init__(
-			self, predictive_model = LinearRegression(),
-			polynomial_model = PolynomialTransformer(degree=1), normalizer = Normalizer(),
-			name = 'noname'
+			self, predictive_model, name = 'predictor',
+			polynomial_model = PolynomialTransformer(degree=1), normalizer = Normalizer()
 	):
+		self._trained = False
+		self._tested = False
+
+		self._x_cols = None
+		self._y_col = None
+		self._model = predictive_model
+		self._name = name
+		self._poly = polynomial_model
+		self._normalizer = normalizer
+
+		self._y_true = None
+		self._y_pred = None
+
 		self._x_cols = None
 		self._y_col = None
 		self._model = deepcopy(predictive_model)
 		self._poly = deepcopy(polynomial_model)
 		self._normalizer = deepcopy(normalizer)
-		self._performance = None
-		self._name = name
+
 		self._coefficients = None
 		self._features = None
 		self._num_features = None
+
 		self._training_size = None
 		self._test_size = None
+
 		self._training_time = None
 		self._prediction_time = None
 
-	@property
-	def name(self):
-		return self._name
+		self._performance = None
 
+	# properties
 	@property
 	def x_cols(self):
 		return self._x_cols
@@ -70,17 +70,15 @@ class Regressor:
 		return self._model
 
 	@property
-	def coefficients(self):
-		return self._coefficients
+	def name(self):
+		return self._name
 
 	@property
-	def features(self):
-		return self._features
-
-	def get_prediction_time(self):
+	def prediction_time(self):
 		return self._prediction_time
 
-	def get_training_time(self):
+	@property
+	def training_time(self):
 		return self._training_time
 
 	@property
@@ -95,7 +93,7 @@ class Regressor:
 	def test_size(self):
 		return self._test_size
 
-	def _prepare_data(self, data=None, x_cols=None, y_col=None, X=None, y=None, echo=False):
+	def _learn_structure(self, data=None, x_cols=None, y_col=None, X=None, y=None):
 		if data is not None and x_cols is not None and y_col is not None: # data, x_cols, y_col
 			pass
 		elif data is not None and x_cols is not None: # data, x_cols --> y_col
@@ -122,9 +120,12 @@ class Regressor:
 		self.y_col = y_col
 		return {'data':data, 'X':X, 'y':y}
 
+
 	def train(self, data=None, x_cols=None, y_col=None, X=None, y=None, echo=False):
+		if self._trained:
+			raise SyntaxError('you cannot train a model that is already trained!')
 		timer = Timer()
-		prepared_data = self._prepare_data(data=data, x_cols=x_cols, y_col=y_col, X=X, y=y, echo=echo)
+		prepared_data = self._learn_structure(data=data, x_cols=x_cols, y_col=y_col, X=X, y=y)
 		data = prepared_data['data']
 		X = prepared_data['X']
 		y = prepared_data['y']
@@ -143,18 +144,7 @@ class Regressor:
 
 		self._num_features = x_poly.shape[1]
 		self._training_size = x_poly.shape[0]
-
-		# coefficiencts / important features
-		try:
-			self._coefficients = get_coefs(data=data, polynomial=self._poly, model=self.model, normalizer=self._normalizer)
-		except:
-			pass
-
-		try:
-			self._features = get_importances(data=data, model=self.model, polynomial=self._poly)
-		except:
-			pass
-
+		self._trained = True
 
 	fit = train
 
@@ -170,13 +160,17 @@ class Regressor:
 		return x_test_poly
 
 	def predict(self, data, echo=False):
+		if not self._trained:
+			raise SyntaxError('you cannot use an untrained model for prediction!')
 		timer = Timer()
 		x_test_poly = self.preprocess(data=data, echo=echo)
+		self._y_pred = self.model.predict(X=x_test_poly)
 		self._prediction_time = timer.get_elapsed()
-		return self.model.predict(X=x_test_poly)
+		return self._y_pred
 
-	def test(self, data, y_true_col=None, y_true=None):
-
+	def test(self, data, y_true_col=None, y_true=None, echo=False):
+		if not self._trained:
+			raise SyntaxError('you cannot use an untrained model for test!')
 
 		if y_true_col is None and y_true is None:
 			y_true_col = self.y_col
@@ -184,50 +178,25 @@ class Regressor:
 		if y_true is None:
 			y_true = data[y_true_col]
 
-		y_pred = self.predict(data=data)
+		self.predict(data=data)
 		self._test_size = data.shape[0]
-		if y_pred.shape != y_true.shape:
-			raise ValueError('y_pred is', y_pred.shape, 'but y_true is', y_true.shape)
-
-		self._performance = RegressionPerformance(y_pred=y_pred, y_true=y_true)
-		return y_pred
-
-	@property
-	def rmse(self):
-		return self._performance.rmse
-
-	@property
-	def mape(self):
-		return self._performance.mape
-
-	@property
-	def nrmse(self):
-		return self._performance.nrmse
-
-	@property
-	def nrmse_range(self):
-		return self._performance.nrmse_range
-
-
-	#def get_coefficients(self):
-	#	return get_coefs(data=self.get_training_data(), polynomial=self._poly, model=self.model, normalizer = self._normalizer)
-
-	def get_performance(self):
-		return self._performance
+		if self._y_pred.shape != y_true.shape:
+			raise ValueError('y_pred is', self._y_pred.shape, 'but y_true is', y_true.shape)
+		self._y_true = y_true
+		self._performance = None
+		self._tested = True
+		return self._y_pred
 
 	def get_summary_row(self):
+		if not self._tested:
+			raise SyntaxError('you cannot get the summary of an untested model!')
+		if not self._trained:
+			raise SyntaxError('you cannot get the summary of an untrained model!')
 		return DataFrame(data={
 			'name': self.name,
-			'num_features':self.num_features,
-			'training_size':self.training_size,
-			'training_time':self.get_training_time(),
-			'test_size':self.test_size,
-			'test_time':self.get_prediction_time(),
-			'mape':self.mape,
-			'rmse':self.rmse,
-			'nrmse':self.nrmse,
-			'nrmse_range':self.nrmse_range
+			'num_features': self.num_features,
+			'training_size': self.training_size,
+			'training_time': self.training_time,
+			'test_size': self.test_size,
+			'test_time': self.prediction_time
 		}, index=[0])
-
-	def get_summary(self):
-		return f"{self.name} MAPE:{beautify_num(self.mape)}% RMSE:{beautify_num(self.rmse)} nRMSE:{beautify_num(self.nrmse)}"

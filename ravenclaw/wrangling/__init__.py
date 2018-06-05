@@ -10,3 +10,4 @@ from .split_rows import split_rows
 from .select_columns import select_columns
 from .fill_with_regression import fill_with_regression
 from .columns_are_unique import columns_are_unique
+from .set_value_where import set_value_where

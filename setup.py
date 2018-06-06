@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 setup(
       name='ravenclaw',
       version='0.1',
-      description='This is an extension of the pandas data frame class',
+      description='For data wrangling.',
       url='',
       author='Idin',
       author_email='d@idin.net',

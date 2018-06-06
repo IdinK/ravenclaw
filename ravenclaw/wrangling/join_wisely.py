@@ -1,7 +1,7 @@
 from pandas import DataFrame
 
 
-def join_wisely(left, right, **kwargs):
+def join_wisely(left, right, remove_duplicates=True, **kwargs):
 	"""
 	joins two dataframes and returns a dictionary with 3 members: left_only, right_only, and both (the results of the two joins)
 	:type left: DataFrame
@@ -27,12 +27,23 @@ def join_wisely(left, right, **kwargs):
 		left_only_data = left[left._left_id.isin(left_only_data._left_id)]
 		split_result['left_only'] = left_only_data.drop(labels='_left_id', axis=1)
 
+
+
 	if 'right_only' in split_result:
 		right_only_data = split_result['right_only']
 		right_only_data = right[right._right_id.isin(right_only_data._right_id)]
 		split_result['right_only'] = right_only_data.drop(labels='_right_id', axis=1)
 
 	if 'both' in split_result:
-		split_result['both'] = split_result['both'].drop(labels=['_left_id', '_right_id'], axis=1)
+		both_data = split_result['both']
+		"""
+		:type both_data: DataFrame
+		"""
+		if remove_duplicates:
+			both_data.sort_values(axis=0, by=['_left_id', '_right_id'], inplace=True)
+			left_id_duplicated = both_data._left_id.duplicated(keep='first')
+			right_id_duplicated = both_data._right_id.duplicated(keep='first')
+			both_data = both_data[~(left_id_duplicated | right_id_duplicated)]
+		split_result['both'] = both_data.drop(labels=['_left_id', '_right_id'], axis=1)
 
 	return split_result

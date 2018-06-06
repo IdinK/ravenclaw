@@ -1,11 +1,10 @@
-from ..regression import Regressor
+
 from copy import deepcopy
 from numpy import where, minimum, maximum
 
 def fill_with_regression(
-		data, based_on_col, group_by = None,
+		data, regressor, based_on_col, group_by = None,
 		cols=None, except_cols=[], inplace=False,
-		regressor = Regressor(),
 		limit_min = False,
 		limit_max = False,
 		global_min = None,

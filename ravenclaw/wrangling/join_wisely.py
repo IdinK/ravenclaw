@@ -22,6 +22,21 @@ def join_wisely(left, right, remove_duplicates=True, **kwargs):
 
 	split_result = {group:data.drop(labels='_merge', axis=1) for group, data in full_join.groupby(by='_merge')}
 
+	if 'both' in split_result:
+		both_data = split_result['both']
+		"""
+		:type both_data: DataFrame
+		"""
+		if remove_duplicates:
+			both_data.sort_values(axis=0, by=['_left_id', '_right_id'], inplace=True)
+			left_id_duplicated = both_data._left_id.duplicated(keep='first')
+			right_id_duplicated = both_data._right_id.duplicated(keep='first')
+			both_data = both_data[~left_id_duplicated & ~right_id_duplicated]
+			split_result['dup_left'] = both_data[left_id_duplicated & ~right_id_duplicated]
+			split_result['dup_right'] = both_data[right_id_duplicated & ~left_id_duplicated]
+			split_result['dup_both'] = both_data[left_id_duplicated & right_id_duplicated]
+		split_result['both'] = both_data.drop(labels=['_left_id', '_right_id'], axis=1)
+
 	if 'left_only' in split_result:
 		left_only_data = split_result['left_only']
 		left_only_data = left[left._left_id.isin(left_only_data._left_id)]
@@ -34,16 +49,7 @@ def join_wisely(left, right, remove_duplicates=True, **kwargs):
 		right_only_data = right[right._right_id.isin(right_only_data._right_id)]
 		split_result['right_only'] = right_only_data.drop(labels='_right_id', axis=1)
 
-	if 'both' in split_result:
-		both_data = split_result['both']
-		"""
-		:type both_data: DataFrame
-		"""
-		if remove_duplicates:
-			both_data.sort_values(axis=0, by=['_left_id', '_right_id'], inplace=True)
-			left_id_duplicated = both_data._left_id.duplicated(keep='first')
-			right_id_duplicated = both_data._right_id.duplicated(keep='first')
-			both_data = both_data[~(left_id_duplicated | right_id_duplicated)]
-		split_result['both'] = both_data.drop(labels=['_left_id', '_right_id'], axis=1)
+
+
 
 	return split_result

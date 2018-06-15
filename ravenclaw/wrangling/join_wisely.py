@@ -1,7 +1,7 @@
 from pandas import DataFrame
 
 
-def join_wisely(left, right, remove_duplicates=True, **kwargs):
+def join_wisely(left, right, remove_duplicates=True, echo=False, **kwargs):
 	"""
 	joins two dataframes and returns a dictionary with 3 members: left_only, right_only, and both (the results of the two joins)
 	:type left: DataFrame
@@ -15,41 +15,19 @@ def join_wisely(left, right, remove_duplicates=True, **kwargs):
 	left['_left_id'] = range(left.shape[0])
 	right['_right_id'] = range(right.shape[0])
 
-	full_join = left.merge(right=right, how='outer', indicator=True, **kwargs)
-	"""
-	:type full_join: DataFrame
-	"""
+	both_data = left.merge(right=right, how='inner', **kwargs)
+	if remove_duplicates:
+		both_data.sort_values(axis=0, by=['_left_id', '_right_id'], inplace=True)
+		left_id_duplicated = both_data._left_id.duplicated(keep='first')
+		right_id_duplicated = both_data._right_id.duplicated(keep='first')
+		both_data = both_data[~left_id_duplicated & ~right_id_duplicated]
+	left_only_data = left[~left['_left_id'].isin(both_data['_left_id'])]
+	right_only_data = right[~right['_right_id'].isin(both_data['_right_id'])]
 
-	split_result = {group:data.drop(labels='_merge', axis=1) for group, data in full_join.groupby(by='_merge')}
+	both_data.drop(labels=['_left_id', '_right_id'], axis=1, inplace=True)
+	left_only_data.drop(labels='_left_id', axis=1, inplace=True)
+	right_only_data.drop(labels='_right_id', axis=1, inplace=True)
+	if echo:
+		print(f'left:{left.shape}, right:{right.shape}\nboth:{both_data.shape}, left_only:{left_only_data.shape}, right_only:{right_only_data.shape}')
 
-	if 'both' in split_result:
-		both_data = split_result['both']
-		"""
-		:type both_data: DataFrame
-		"""
-		if remove_duplicates:
-			both_data.sort_values(axis=0, by=['_left_id', '_right_id'], inplace=True)
-			left_id_duplicated = both_data._left_id.duplicated(keep='first')
-			right_id_duplicated = both_data._right_id.duplicated(keep='first')
-			both_data = both_data[~left_id_duplicated & ~right_id_duplicated]
-			split_result['dup_left'] = both_data[left_id_duplicated & ~right_id_duplicated]
-			split_result['dup_right'] = both_data[right_id_duplicated & ~left_id_duplicated]
-			split_result['dup_both'] = both_data[left_id_duplicated & right_id_duplicated]
-		split_result['both'] = both_data.drop(labels=['_left_id', '_right_id'], axis=1)
-
-	if 'left_only' in split_result:
-		left_only_data = split_result['left_only']
-		left_only_data = left[left._left_id.isin(left_only_data._left_id)]
-		split_result['left_only'] = left_only_data.drop(labels='_left_id', axis=1)
-
-
-
-	if 'right_only' in split_result:
-		right_only_data = split_result['right_only']
-		right_only_data = right[right._right_id.isin(right_only_data._right_id)]
-		split_result['right_only'] = right_only_data.drop(labels='_right_id', axis=1)
-
-
-
-
-	return split_result
+	return {'both':both_data, 'left_only':left_only_data, 'right_only':right_only_data}

@@ -6,5 +6,6 @@ from .ModelData import ModelData
 from .DataEnclosure import DataEnclosure
 
 from .wrangling import *
+from .XYZ import XYZ
 
 from .package_info import __build_time__

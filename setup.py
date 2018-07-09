@@ -7,7 +7,7 @@ setup(
       url='',
       author='Idin',
       author_email='d@idin.net',
-      license='',
+      license='GNU AGPLv3',
       packages=find_packages(),
       zip_safe=False
 )

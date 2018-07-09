@@ -21,8 +21,8 @@ def join_wisely(left, right, remove_duplicates=True, echo=False, **kwargs):
 		left_id_duplicated = both_data._left_id.duplicated(keep='first')
 		right_id_duplicated = both_data._right_id.duplicated(keep='first')
 		both_data = both_data[~left_id_duplicated & ~right_id_duplicated]
-	left_only_data = left[~left['_left_id'].isin(both_data['_left_id'])]
-	right_only_data = right[~right['_right_id'].isin(both_data['_right_id'])]
+	left_only_data = left[~left['_left_id'].isin(both_data['_left_id'])].copy()
+	right_only_data = right[~right['_right_id'].isin(both_data['_right_id'])].copy()
 
 	both_data.drop(labels=['_left_id', '_right_id'], axis=1, inplace=True)
 	left_only_data.drop(labels='_left_id', axis=1, inplace=True)

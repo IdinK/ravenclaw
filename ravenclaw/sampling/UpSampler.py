@@ -57,6 +57,7 @@ class UpSampler:
 			y = y.fillna(self._fill_na)
 
 
+
 		x_groups = [
 			pd.concat([x.sort_index()]*math.ceil(self._repeats[name])).head(self._group_pop)
 			for name, x in X.groupby(by=y)

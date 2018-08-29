@@ -11,5 +11,8 @@ from .select_columns import select_columns
 from .fill_with_regression import fill_with_regression
 from .columns_are_unique import columns_are_unique
 from .set_value_where import set_value_where
-from .join_wisely import join_wisely
+from .join_wisely import join_wisely, join_and_keep_order
 from .min_max import min, max
+from .fast_merge import fast_merge
+from .find_duplicated_columns import find_duplicated_columns
+from .DummyMaker import DummyMaker

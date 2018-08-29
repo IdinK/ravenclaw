@@ -4,12 +4,13 @@ import math
 from random import shuffle
 
 class UpSampler:
-	def __init__(self, fill_na=None):
+	def __init__(self, fill_na=None, max_repeats=None):
 		#self._sm = SMOTE(**kwargs)
 		self._x_cols = None
 		self._y_col = None
 		self._fill_na = fill_na
 		self._up_sampling_table = None
+		self._max_repeats = max_repeats
 
 	def fit(self, X, y):
 		self._x_cols = X.columns
@@ -36,6 +37,8 @@ class UpSampler:
 			'population']
 		self._up_sampling_table = up_sampling_table
 		self._repeats = up_sampling_table.set_index('name').to_dict()['num_repeats_required']
+		if self._max_repeats is not None:
+			self._repeats = {key:min(value, self._max_repeats) for key, value in self._repeats.items()}
 
 
 	def fit_upsample(self, X, y):

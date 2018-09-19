@@ -15,4 +15,4 @@ from .join_wisely import join_wisely, join_and_keep_order
 from .min_max import min, max
 from .fast_merge import fast_merge
 from .find_duplicated_columns import find_duplicated_columns
-from .DummyMaker import DummyMaker
+from .OneHotEncoder import OneHotEncoder

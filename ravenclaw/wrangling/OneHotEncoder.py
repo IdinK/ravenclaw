@@ -2,24 +2,25 @@ import numpy as np
 import pandas as pd
 from slytherin.progress import ProgressBar
 
-class DummyMaker:
+class OneHotEncoder:
 	def __init__(
-			self, top=10, rank_method='first', dummy_na=False, replacement='other',
+			self, top=10, rank_method='first', encode_na=False, replacement='other',
 			include=None, exclude=None
 	):
 		self._column_values = {}
 		self._top = top
 		self._method = rank_method
-		self._dummy_na = dummy_na
+		self._encode_na = encode_na
 		self._replacement = replacement
 		self._include = include
 		self._exclude = exclude
-		self._dummy_columns = None
+		self._one_hot_columns = None
 
 
-	def train(self, data, echo=False):
+	def train(self, data, echo=0):
+		echo = max(0, echo)
 		result = data.copy()
-		dummy_columns = []
+		one_hot_columns = []
 		non_numeric_cols = data.select_dtypes(exclude=['bool', 'number']).columns
 
 		if self._include is not None:
@@ -42,20 +43,21 @@ class DummyMaker:
 				)
 				dummies = pd.get_dummies(
 					data=temp_data[[col_name]],
-					prefix=col_name, prefix_sep='_', dummy_na=self._dummy_na, sparse=True
+					prefix=col_name, prefix_sep='_', dummy_na=self._encode_na, sparse=True
 				)
 
 				result = pd.concat([result, dummies], axis=1)
 				#result[f'{col_name}_rank'] = temp_data['rank']
-				dummy_columns += list(dummies.columns)
+				one_hot_columns += list(dummies.columns)
 				self._column_values[col_name] = only_include
 			except:
 				continue
-		self._dummy_columns = dummy_columns
-		if echo: progress_bar.show(amount=progress_amount, text=f'DM trained dummies for {dummy_columns}')
+		self._one_hot_columns = one_hot_columns
+		if echo: progress_bar.show(amount=progress_amount, text=f'DM trained dummies for {one_hot_columns}')
 		return result
 
-	def get_dummies(self, data, echo=False):
+	def encode(self, data, echo=0):
+		echo = max(0, echo)
 		result = data.copy()
 		progress_bar = ProgressBar(total=len(self._column_values))
 		progress_amount = 0
@@ -68,12 +70,12 @@ class DummyMaker:
 			)
 			dummies = pd.get_dummies(
 				data=temp_data[[col_name]],
-				prefix=col_name, prefix_sep='_', dummy_na=self._dummy_na, sparse=True
+				prefix=col_name, prefix_sep='_', dummy_na=self._encode_na, sparse=True
 			)
 			result = pd.concat([result, dummies], axis=1)
-		for col_name in self._dummy_columns:
+		for col_name in self._one_hot_columns:
 			if col_name not in result.columns:
 				result[col_name] = 0
-		if echo: progress_bar.show(amount=progress_amount, text=f'DM created dummies for {self._dummy_columns}')
+		if echo: progress_bar.show(amount=progress_amount, text=f'DM created dummies for {self._one_hot_columns}')
 		return result
 

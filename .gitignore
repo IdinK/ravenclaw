@@ -1,3 +1,5 @@
 ravenclaw/__pycache__/
 .idea/
 .ipynb_checkpoints/
+
+ravenclaw\.egg-info/

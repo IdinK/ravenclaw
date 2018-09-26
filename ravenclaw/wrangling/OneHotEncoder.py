@@ -15,6 +15,7 @@ class OneHotEncoder:
 		self._include = include
 		self._exclude = exclude
 		self._one_hot_columns = None
+		self._columns = None
 
 
 	def train(self, data, echo=0):
@@ -29,6 +30,7 @@ class OneHotEncoder:
 			non_numeric_cols = [col for col in non_numeric_cols if col not in self._exclude]
 		progress_bar = ProgressBar(total=len(non_numeric_cols))
 		progress_amount = 0
+		self._columns = []
 		for col_name in non_numeric_cols:
 			if echo: progress_bar.show(amount=progress_amount, text=f'DM training dummies for {col_name}')
 			progress_amount += 1
@@ -50,10 +52,11 @@ class OneHotEncoder:
 				#result[f'{col_name}_rank'] = temp_data['rank']
 				one_hot_columns += list(dummies.columns)
 				self._column_values[col_name] = only_include
+				self._columns.append(col_name)
 			except:
 				continue
 		self._one_hot_columns = one_hot_columns
-		if echo: progress_bar.show(amount=progress_amount, text=f'DM trained dummies for {one_hot_columns}')
+		if echo: progress_bar.show(amount=progress_amount, text=f'DM trained dummies for {self._columns}')
 		return result
 
 	def encode(self, data, echo=0):
@@ -76,6 +79,6 @@ class OneHotEncoder:
 		for col_name in self._one_hot_columns:
 			if col_name not in result.columns:
 				result[col_name] = 0
-		if echo: progress_bar.show(amount=progress_amount, text=f'DM created dummies for {self._one_hot_columns}')
+		if echo: progress_bar.show(amount=progress_amount, text=f'DM created dummies for {self._columns}')
 		return result
 

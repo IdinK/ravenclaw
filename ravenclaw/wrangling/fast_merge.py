@@ -1,5 +1,4 @@
 import pandas as pd
-from gringotts import Pickler
 
 def fast_merge(left, right, left_on, right_on, how='inner'):
 	"""

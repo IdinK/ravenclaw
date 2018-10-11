@@ -1,5 +1,4 @@
 from pandas import concat as pd_concat
-from .wrangling import columns_are_unique
 
 class ModelData:
 	def __init__(self, X, y, Z=None):

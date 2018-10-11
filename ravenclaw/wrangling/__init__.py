@@ -16,3 +16,4 @@ from .min_max import min, max
 from .fast_merge import fast_merge
 from .find_duplicated_columns import find_duplicated_columns
 from .OneHotEncoder import OneHotEncoder
+from .join_and_preserve_types import join_and_preserve_types

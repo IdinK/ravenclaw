@@ -1,4 +1,4 @@
-
+from .get_data_types import get_data_types, get_redshift_data_types
 from .example_dataframes import lotr
 from .display import display
 from .num_rows import num_rows, num_cols, nrows, ncols

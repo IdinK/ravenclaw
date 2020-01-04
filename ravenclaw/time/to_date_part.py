@@ -1,7 +1,7 @@
 
 from slytherin import remove_non_alphanumeric
-from chronology import to_date_part as lp_to_date_part
-from chronology import yearmonth_to_date as lp_yearmonth_to_date
+from chronometry import to_date_part as lp_to_date_part
+from chronometry import yearmonth_to_date as lp_yearmonth_to_date
 from pandas import to_datetime
 
 

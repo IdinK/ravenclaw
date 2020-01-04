@@ -1,4 +1,4 @@
-from chronology import YearMonth
+from chronometry import YearMonth
 
 def as_yearmonth(x, sep='-', month_as='num'):
 	try:

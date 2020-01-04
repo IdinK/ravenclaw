@@ -1,4 +1,4 @@
-from chronology import add_time as lp_add_time
+from chronometry import add_time as lp_add_time
 from pandas.core.series import Series
 
 def add_time(t, amount, unit ='day'):

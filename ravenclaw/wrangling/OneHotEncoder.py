@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from interaction import ProgressBar
+from chronometry.progress import ProgressBar
+
 
 class OneHotEncoder:
 	def __init__(
@@ -17,17 +18,18 @@ class OneHotEncoder:
 		self._one_hot_columns = None
 		self._columns = None
 
-
 	def train(self, data, echo=0):
 		echo = max(0, echo)
 		result = data.copy()
 		one_hot_columns = []
-		non_numeric_cols = data.select_dtypes(exclude=['bool', 'number']).columns
+		non_numeric_cols = data.select_dtypes(exclude=['bool', 'number', 'datetime64', 'datetime']).columns
+
 
 		if self._include is not None:
 			non_numeric_cols = [col for col in non_numeric_cols if col in self._include]
 		if self._exclude is not None:
 			non_numeric_cols = [col for col in non_numeric_cols if col not in self._exclude]
+
 		progress_bar = ProgressBar(total=len(non_numeric_cols))
 		progress_amount = 0
 		self._columns = []
@@ -36,25 +38,30 @@ class OneHotEncoder:
 			progress_amount += 1
 			try:
 				temp_data = data[[col_name]].copy()
-				temp_data['count'] = temp_data.groupby(col_name)[col_name].transform('count')
-				temp_data['rank'] = temp_data.groupby('count')['count'].rank(method=self._method, ascending=False)
-				only_include = set(temp_data[temp_data['rank']>self._top][col_name].values)
+				temp_data['count'] = 1
+				counts = temp_data.groupby(col_name).sum().reset_index(drop=False)
+				top_counts = counts.sort_values(by=col_name, ascending=False).head(self._top)
+				only_include = set(top_counts[col_name])
 
 				temp_data[col_name] = np.where(
 					temp_data[col_name].isin(only_include), temp_data[col_name], self._replacement
 				)
+
 				dummies = pd.get_dummies(
 					data=temp_data[[col_name]],
-					prefix=col_name, prefix_sep='_', dummy_na=self._encode_na, sparse=True
+					prefix=col_name, prefix_sep='_', dummy_na=self._encode_na, sparse=False
 				)
+
+				dummies = dummies[[col for col in dummies if not dummies[col].nunique()==1]]
 
 				result = pd.concat([result, dummies], axis=1)
 				#result[f'{col_name}_rank'] = temp_data['rank']
 				one_hot_columns += list(dummies.columns)
 				self._column_values[col_name] = only_include
 				self._columns.append(col_name)
-			except:
-				continue
+			except Exception as e:
+				print(f'exception being raised for column: {col_name}')
+				raise e
 		self._one_hot_columns = one_hot_columns
 		if echo: progress_bar.show(amount=progress_amount, text=f'DM trained dummies for {self._columns}')
 		return result

@@ -1,2 +1,6 @@
 
 examples/
+build
+ravenclaw.egg-info
+dist
+ravenclaw/test

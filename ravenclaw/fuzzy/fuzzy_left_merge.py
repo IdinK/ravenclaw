@@ -4,25 +4,35 @@ from joblib import Parallel, delayed
 from chronometry.progress import ProgressBar, iterate
 
 
-def _get_fuzz_ratio_of_strings(s1, s2, na_ratio, two_na_ratio, case_sensitivity):
+def get_fuzz_ratio(s1, s2):
+	return fuzz.ratio(s1, s2) / 100.0
+
+
+def _get_similarity_between_two_strings(s1, s2, na_ratio, two_na_ratio, case_sensitivity, similarity_function):
+	if similarity_function is None:
+		similarity_function = get_fuzz_ratio
+
 	if s1 is None and s2 is None:
 		return two_na_ratio
 	elif s1 is None or s2 is None:
 		return na_ratio
 	else:
 		if case_sensitivity == 0:
-			return fuzz.ratio(s1.lower(), s2.lower()) / 100.0
+			return similarity_function(s1.lower(), s2.lower())
 		elif case_sensitivity == 1:
-			return fuzz.ratio(s1, s2) / 100.0
+			return similarity_function(s1, s2)
 		elif case_sensitivity > 1 or case_sensitivity < 0:
 			raise ValueError('case_sensitivity should be between 0 and 1')
 		else:
-			csw = case_sensitivity
-			ciw = 1 - case_sensitivity
-			return (fuzz.ratio(s1.lower(), s2.lower()) * csw) + (fuzz.ratio(s1, s2) * ciw) / 100
+			cs_sim = similarity_function(s1, s2)
+			ci_sim = similarity_function(s1.lower(), s2.lower())
+			return cs_sim * case_sensitivity + ci_sim * (1 - case_sensitivity)
 
 
-def _get_fuzz_ratio(strings1, strings2, na_ratio, two_na_ratio, case_sensitivity):
+def _get_similarity_betweens_sets_of_strings(
+		strings1, strings2, na_ratio, two_na_ratio, case_sensitivity, similarity_function,
+		weights
+):
 	"""
 	:type strings1: str or list[str] or tuple[str]
 	:type strings2: str or list[str] or tuple[str]
@@ -37,28 +47,34 @@ def _get_fuzz_ratio(strings1, strings2, na_ratio, two_na_ratio, case_sensitivity
 		strings1 = [strings1]
 	if isinstance(strings2, str):
 		strings2 = [strings2]
+	if weights is None:
+		weights = [1] * len(strings1)
 
 	if len(strings1) != len(strings2):
 		raise ValueError('strings1 and strings2 should be of the same size')
 
-	ratios = [
-		_get_fuzz_ratio_of_strings(
-			s1=s1, s2=s2, na_ratio=na_ratio, two_na_ratio=two_na_ratio, case_sensitivity=case_sensitivity
-		)
-		for s1, s2 in zip(strings1, strings2)
+	similarities = [
+		_get_similarity_between_two_strings(
+			s1=s1, s2=s2, na_ratio=na_ratio, two_na_ratio=two_na_ratio, case_sensitivity=case_sensitivity,
+			similarity_function=similarity_function
+		) * weight
+		for s1, s2, weight in zip(strings1, strings2, weights)
 	]
-	return sum(ratios) / len(ratios)
+	return sum(similarities) / sum(weights)
 
 
-def _get_ratio_between_strings_and_row(strings, row, right_on, na_ratio, two_na_ratio, case_sensitivity):
-	return _get_fuzz_ratio(
+def _get_similarity_between_strings_and_row(
+		strings, row, right_on, na_ratio, two_na_ratio, case_sensitivity, similarity_function, weights
+):
+	return _get_similarity_betweens_sets_of_strings(
 		strings1=strings, strings2=[row[x] for x in right_on], na_ratio=na_ratio, two_na_ratio=two_na_ratio,
-		case_sensitivity=case_sensitivity
+		case_sensitivity=case_sensitivity, similarity_function=similarity_function, weights=weights
 	)
 
 
 def _find_best_matching_rows(
-		strings, right, right_on, na_ratio, two_na_ratio, case_sensitivity, score_name, num_threads, num_results, echo
+		strings, right, right_on, na_ratio, two_na_ratio, case_sensitivity, score_name, num_threads,
+		similarity_function, weights, num_results, echo
 ):
 	"""
 	:param strings:
@@ -79,9 +95,9 @@ def _find_best_matching_rows(
 
 		right[score_name] = ProgressBar.apply(
 			data=right,
-			function=lambda row: _get_ratio_between_strings_and_row(
+			function=lambda row: _get_similarity_between_strings_and_row(
 				strings=strings, row=row, right_on=right_on, na_ratio=na_ratio, two_na_ratio=two_na_ratio,
-				case_sensitivity=case_sensitivity
+				case_sensitivity=case_sensitivity, similarity_function=similarity_function, weights=weights
 			),
 			echo=echo
 		)
@@ -91,9 +107,9 @@ def _find_best_matching_rows(
 		parallel = Parallel(n_jobs=num_threads, backend='threading', require='sharedmem')
 		progress_bar = ProgressBar(total=len(right) + 1, echo=echo)
 		right[score_name] = parallel(
-			delayed(_get_ratio_between_strings_and_row)(
+			delayed(_get_similarity_between_strings_and_row)(
 				strings=strings, row=row, right_on=right_on, na_ratio=na_ratio, two_na_ratio=two_na_ratio,
-				case_sensitivity=case_sensitivity
+				case_sensitivity=case_sensitivity, similarity_function=similarity_function, weights=weights
 			)
 			for index, row in iterate(right.iterrows(), progress_bar=progress_bar)
 		)
@@ -105,7 +121,7 @@ def _find_best_matching_rows(
 
 def _match_rows(
 		row, right, left_on, right_on, na_ratio, two_na_ratio, score_name, case_sensitivity, num_results,
-		num_threads, echo
+		similarity_function, num_threads, weights, echo
 ):
 	"""
 	:param row:
@@ -125,8 +141,9 @@ def _match_rows(
 
 	result = _find_best_matching_rows(
 		strings=strings, right=right, right_on=right_on, na_ratio=na_ratio, two_na_ratio=two_na_ratio,
-		case_sensitivity=case_sensitivity, score_name=score_name, num_threads=num_threads,
-		num_results=num_results, echo=echo
+		case_sensitivity=case_sensitivity, score_name=score_name,
+		num_results=num_results, similarity_function=similarity_function, weights=weights,
+		num_threads=num_threads, echo=echo
 	)
 	result['fuzzy_id'] = row['fuzzy_id']
 	result['match_rank'] = range(1, len(result) + 1)
@@ -135,17 +152,22 @@ def _match_rows(
 
 def fuzzy_left_merge(
 		left, right, left_on=None, right_on=None, on=None, suffixes=('_x', '_y'), score_name='match_ratio',
-		na_ratio=0.5, two_na_ratio=0.75, case_sensitivity=0.5, num_results=1, num_threads=-1, echo=1
+		na_ratio=0.5, two_na_ratio=0.75, similarity_function=None, weights=None,
+		case_sensitivity=0.5, num_results=1, num_threads=-1, echo=1
 ):
 	"""
 	:type left: DataFrame
 	:type right: DataFrame
-	:type left_on:
-	:type right_on:
-	:type on:
-	:type how:
-	:type num_threads:
-	:rtype:
+	:type left_on: list[str] or str or NoneType
+	:type right_on: list[str] or str or NoneType
+	:type on: list[str] or str or NoneType
+	:type how: str or NoneType
+	:type case_sensitivity: float
+	:type num_results: int
+	:type similarity_function: callable
+	:type echo: int or bool or ProgressBar
+	:type num_threads: int
+	:rtype: DataFrame
 	"""
 	if score_name in left.columns or score_name in right.columns:
 		raise ValueError('use a score_name different from column names.')
@@ -177,6 +199,7 @@ def fuzzy_left_merge(
 			function=lambda row: _match_rows(
 				row=row, right=data2, left_on=left_on, right_on=right_on, na_ratio=na_ratio, two_na_ratio=two_na_ratio,
 				case_sensitivity=case_sensitivity, score_name=score_name, num_results=num_results,
+				similarity_function=similarity_function, weights=weights,
 				num_threads=1, echo=echo - 1
 			)
 		)
@@ -190,6 +213,7 @@ def fuzzy_left_merge(
 				row=row, right=data2,
 				left_on=left_on, right_on=right_on, na_ratio=na_ratio, two_na_ratio=two_na_ratio,
 				case_sensitivity=case_sensitivity, score_name=score_name, num_results=num_results,
+				similarity_function=similarity_function, weights=weights,
 				num_threads=1, echo=echo - 1
 			)
 			for index, row in iterate(data1.iterrows(), progress_bar=progress_bar)

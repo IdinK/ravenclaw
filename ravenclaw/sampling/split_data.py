@@ -1,6 +1,7 @@
 from pandas import DataFrame
 from math import ceil
 
+
 def split_data(data, split_size=None, num_splits=None):
 	"""
 	:type data: DataFrame

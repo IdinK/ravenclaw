@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
 	name='ravenclaw',
-	version='2020.1.6',
+	version='2020.9.18',
 	description='For data wrangling.',
 	url='https://github.com/idin/ravenclaw',
 	author='Idin',
@@ -10,7 +10,8 @@ setup(
 	license='MIT',
 	packages=find_packages(exclude=("jupyter_tests", "examples", ".idea", ".git")),
 	install_requires=[
-		'numpy', 'pandas', 'chronometry', 'SPARQLWrapper', 'slytherin', 'fuzzywuzzy', 'joblib'
+		'numpy', 'pandas', 'chronometry', 'SPARQLWrapper', 'fuzzywuzzy', 'joblib',
+		'slytherin', 'txt'
 	],
 	zip_safe=False
 )

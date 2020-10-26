@@ -15,7 +15,6 @@ from .join_wisely import join_wisely, join_and_keep_order
 from .min_max import min, max
 from .fast_merge import fast_merge
 from .find_duplicated_columns import find_duplicated_columns
-from .OneHotEncoder import OneHotEncoder
 from .join_and_preserve_types import join_and_preserve_types
 from .bring_to_front import move_columns, bring_to_front, send_to_back
 from .create_data_from_combinations import create_data_from_combinations

@@ -1,5 +1,6 @@
 from collections import OrderedDict
 import pandas as pd
+from datetime import datetime
 
 
 lotr = pd.DataFrame(OrderedDict({
@@ -11,6 +12,6 @@ lotr = pd.DataFrame(OrderedDict({
         'Baggins', 'Gorn', None, None, None,
         'Baggins', None, None, None, None, 'Other'
     ],
-    'date': pd.Series(pd.date_range(start = pd.datetime.today(), periods = 11)).dt.date
+    'date': pd.Series(pd.date_range(start=datetime.today(), periods=11)).dt.date
 }))
 
